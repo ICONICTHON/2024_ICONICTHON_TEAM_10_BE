@@ -72,7 +72,7 @@ def select_classroom_1(request):
 
     reservation = Reservation.objects.create(
                 classroom=classroom,
-                custom_tag=custom_tag,
+                custum_tag=custom_tag,
                 tag_1=tag_1,
                 tag_2=tag_2,
                 # 다른 필드들도 필요에 따라 추가

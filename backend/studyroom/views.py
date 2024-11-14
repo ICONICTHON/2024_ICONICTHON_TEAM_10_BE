@@ -9,39 +9,36 @@ def search_studyroom(request):
     if request.method == 'POST':
         try:
             # POST 데이터 파싱
-            building_name = request.POST.get('building_name', '')
             room_number = request.POST.get('room_number', '')
-            tag_1 = request.POST.get('tag_1', '')
-            tag_2 = request.POST.get('tag_2', '')
 
-            # 기본 쿼리: tag_1이 'studyroom'인 예약
-            query = Q(tag_1='studyroom')
-            
-            # 추가 검색 조건
-            if building_name:
-                query &= Q(classroom__building_name__icontains=building_name)
+            print("\n=== 받은 파라미터 ===")
+            print(f"room={room_number}")
+
+            # room_number가 정확히 일치하는 경우만 조회
+            query = Q()
             if room_number:
-                query &= Q(classroom__room_number=room_number)
-            if tag_2:
-                query |= Q(tag_2__icontains=tag_2)
+                query = Q(classroom__room_number=room_number)
 
-            # 예약 정보 조회
-            reservations = Reservation.objects.filter(query).select_related('classroom')
+            # select_related로 classroom 정보까지 함께 조회
+            reservations = Reservation.objects.select_related('classroom').filter(query) if query else Reservation.objects.select_related('classroom').all()
+            
+            print("\n=== resist_reservation 테이블 데이터 ===")
+            print(f"조회된 데이터 수: {reservations.count()}")
+            print(f"실행된 SQL: {reservations.query}")
 
-            # 결과를 JSON 형식으로 변환
-            results = []
+            # 예약 데이터와 강의실 정보 출력
             for reservation in reservations:
-                results.append({
-                    'room_id': reservation.classroom.room_id,
-                    'building_name': reservation.classroom.building_name,
-                    'room_number': reservation.classroom.room_number,
-                    'capacity': reservation.classroom.capacity,
-                    'tag_1': reservation.tag_1,
-                    'tag_2': reservation.tag_2,
-                    'reservation_date': reservation.reservation_date,
-                    'start_time': reservation.start_time.strftime('%Y-%m-%d %H:%M:%S'),
-                    'end_time': reservation.end_time.strftime('%Y-%m-%d %H:%M:%S'),
-                })
+                print(f"""
+                Reservation ID: {reservation.id}
+                Building Name: {reservation.classroom.building_name}
+                Room Number: {reservation.classroom.room_number}
+                """)
+
+            results = [{
+                'id': reservation.id,
+                'building_name': reservation.classroom.building_name,
+                'room_number': reservation.classroom.room_number
+            } for reservation in reservations]
 
             return JsonResponse({
                 'status': 'success',
@@ -50,6 +47,55 @@ def search_studyroom(request):
             })
 
         except Exception as e:
+            print(f"에러 발생: {str(e)}")
+            return JsonResponse({
+                'status': 'error',
+                'message': str(e)
+            }, status=400)
+
+    return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+@csrf_exempt
+def attend_studyroom(request, reservation_id):
+    if request.method == 'POST':
+        try:
+            # 해당 ID의 예약 조회
+            reservation = Reservation.objects.get(id=reservation_id)
+            
+            print(f"\n=== 현재 예약 데이터 ===")
+            print(f"ID: {reservation.id}")
+            print(f"Attendees Count: {reservation.attendees_count}")
+            print(f"Start Time: {reservation.start_time}")
+            print(f"End Time: {reservation.end_time}")
+            
+            # 날짜 데이터는 건드리지 않고 attendees_count만 업데이트
+            if reservation.attendees_count is None:
+                reservation.attendees_count = 0
+            
+            # attendees_count 필드만 업데이트
+            Reservation.objects.filter(id=reservation_id).update(
+                attendees_count=reservation.attendees_count + 1
+            )
+            
+            # 업데이트된 데이터 다시 조회
+            reservation.refresh_from_db()
+            
+            print(f"\n=== 참석자 수 업데이트 ===")
+            print(f"Updated attendees_count: {reservation.attendees_count}")
+
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Successfully updated attendance',
+                'attendees_count': reservation.attendees_count
+            }, status=200)
+
+        except Reservation.DoesNotExist:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Reservation not found'
+            }, status=404)
+        except Exception as e:
+            print(f"에러 발생: {str(e)}")
             return JsonResponse({
                 'status': 'error',
                 'message': str(e)

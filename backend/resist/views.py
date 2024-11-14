@@ -27,7 +27,9 @@ def select_classroom(request):
             sipal = room_id
             if not all([building_name, room_id, reservation_date]):
                 return JsonResponse({'error': 'All fields are required.'}, status=400)
-
+            
+            #json 데이터 출력
+            print(f"building_name: {building_name}, room_id: {room_id}, reservation_date: {reservation_date}")
             # 여기에 대관 가능 여부 체크하는 코드 추가 
             
             # 
@@ -94,32 +96,82 @@ def select_classroom_1(request):
 def select_classroom_2(request):
      if request.method == 'POST':
         try:
-            # 세션 또는 전역 변수에서 room_id 가져오기
-            room_id = sipal
-            if not room_id:
-                return JsonResponse({'error': 'Room ID is not set.'}, status=400)
-
             # JSON 데이터 파싱
             data = json.loads(request.body)
-            custum_tag = data.get('custum_tag')
-            tag_1 = data.get('tag_1')
-            tag_2 = data.get('tag_2')
+            
+            # 받은 데이터 출력
+            print("\n=== 받은 데이터 ===")
+            print(data)
+            
+            # 데이터 추출
+            building_name = data.get('building_name')
+            room_id = data.get('room_id')
+            reservation_date = data.get('reservation_date')
+            start_time = data.get('start_time')
+            custom_tag = data.get('custom_tag')
+            tag1 = data.get('tag1')
+            tag2 = data.get('tag2')
+
+            # room_id가 없으면 전역 변수에서 가져오기
+            if not room_id:
+                global sipal
+                room_id = sipal
+
+            if not room_id:
+                return JsonResponse({'error': 'Room ID is not set.'}, status=400)
 
             # 가장 최근에 생성된 해당 강의실의 Reservation 객체 가져오기
             reservation = Reservation.objects.filter(classroom__room_id=room_id).order_by('-id').first()
             if not reservation:
                 return JsonResponse({'error': 'No reservation found for this room.'}, status=404)
 
-            # 태그 업데이트
-            reservation.custum_tag = custum_tag
-            reservation.tag_1 = tag_1
-            reservation.tag_2 = tag_2
-            reservation.attendees_count = 1
+            # 예약 정보 업데이트
+            if start_time:
+                reservation.start_time = datetime.strptime(f"{reservation_date} {start_time}", '%Y-%m-%d %H:%M')
+            if custom_tag:
+                reservation.custum_tag = custom_tag
+            if tag1:
+                reservation.tag_1 = tag1
+            if tag2:
+                reservation.tag_2 = tag2
+
             reservation.save()
 
-            return JsonResponse({'message': 'Reservation updated successfully.'}, status=200)
+            # 응답 데이터 구성
+            response_data = {
+                'building_name': reservation.classroom.building_name,
+                'room_id': reservation.classroom.room_id,
+                'reservation_date': reservation.start_time.strftime('%Y-%m-%d'),
+                'start_time': reservation.start_time.strftime('%H:%M'),
+                'custom_tag': reservation.custum_tag,
+                'tag1': reservation.tag_1,
+                'tag2': reservation.tag_2
+            }
+
+            print("\n=== 업데이트된 예약 정보 ===")
+            print(response_data)
+
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Reservation updated successfully.',
+                'data': response_data
+            }, status=200)
+
+        except json.JSONDecodeError as e:
+            print(f"JSON 파싱 에러: {str(e)}")
+            print(f"받은 데이터: {request.body}")
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Invalid JSON format'
+            }, status=400)
         except Exception as e:
-            return JsonResponse({'error': str(e)}, status=500)
+            print(f"에러 발생: {str(e)}")
+            return JsonResponse({
+                'status': 'error',
+                'message': str(e)
+            }, status=500)
+
+     return JsonResponse({'error': 'Invalid HTTP method.'}, status=405)
 
 
 @csrf_exempt

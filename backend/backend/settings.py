@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'resist',
     'studyroom',
     'corsheaders',
+    'settimetable',
 ]
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (

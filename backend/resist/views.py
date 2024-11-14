@@ -11,7 +11,7 @@ from .models import Classroom, User, Reservation, Course
 from .searializers import ClassroomSerializer
 from datetime import datetime, timedelta
 
-sipal = ""
+sipal = "" 
 
 @csrf_exempt
 def select_classroom(request):
@@ -32,6 +32,7 @@ def select_classroom(request):
                 room_id=room_id,
                 defaults={
                     'building_name': building_name,
+                    'room_id': room_id, 
                     'room_number': room_id,  # 필요에 따라 수정
                     'capacity': 99,  # 기본값 설정
                     'has_air_conditioning': False,  # 기본값 설정
@@ -117,10 +118,6 @@ def select_classroom_2(request):
     else:
         return JsonResponse({'error': 'Invalid HTTP method.'}, status=405)
     
-@csrf_exempt
-def search(request):
-    return JsonResponse()
-
 @csrf_exempt
 def start(request):
     return JsonResponse()

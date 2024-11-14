@@ -11,7 +11,7 @@ from .models import Classroom, User, Reservation, Course
 from .searializers import ClassroomSerializer
 from datetime import datetime, timedelta
 
-sipal = "" 
+sipal = ""
 
 @csrf_exempt
 def select_classroom(request):
@@ -22,14 +22,15 @@ def select_classroom(request):
             building_name = data.get('building_name')
             room_id = data.get('room_id')
             reservation_date = data.get('reservation_date')
-            sipal = room_id
             # 필수 데이터 검증
+            global sipal
+            sipal = room_id
             if not all([building_name, room_id, reservation_date]):
                 return JsonResponse({'error': 'All fields are required.'}, status=400)
 
             # Classroom 객체 생성 또는 가져오기
             classroom, created = Classroom.objects.get_or_create(
-                room_id=room_id,
+                room_id=sipal,
                 defaults={
                     'building_name': building_name,
                     'room_id': room_id, 
@@ -59,7 +60,7 @@ def select_classroom(request):
             return JsonResponse({'error': str(e)}, status=500)
     else:
         return JsonResponse({'error': 'Invalid HTTP method.'}, status=405)
-
+'''
 @csrf_exempt
 def select_classroom_1(request):
     if request.method == 'POST':# JSON 데이터 파싱
@@ -68,7 +69,6 @@ def select_classroom_1(request):
         tag_1 = data.get('tag_1')
         tag_2 = data.get('tag_2')
 
-    classroom = Classroom.objects.get(room_id=sipal)#room_id가 시팔인 데이터 긁어오기
 
     reservation = Reservation.objects.create(
                 classroom=classroom,
@@ -83,41 +83,43 @@ def select_classroom_1(request):
     return JsonResponse({'message': 'Reservation created successfully.'}, status=201)
 
 @csrf_exempt
-def select_classroom_2(request):
+def select_classroom_1(request):
     if request.method == 'GET':
+    
+        '''
+@csrf_exempt
+def select_classroom_2(request):
+     if request.method == 'POST':
         try:
-            # 세션에서 room_id 가져오기
-            room_id = request.session.get('room_id')
+            # 세션 또는 전역 변수에서 room_id 가져오기
+            room_id = sipal
             if not room_id:
-                return JsonResponse({'error': 'Room ID is not set in session.'}, status=400)
+                return JsonResponse({'error': 'Room ID is not set.'}, status=400)
 
-            # 해당 room_id의 가장 최근 Reservation 가져오기
+            # JSON 데이터 파싱
+            data = json.loads(request.body)
+            custum_tag = data.get('custum_tag')
+            tag_1 = data.get('tag_1')
+            tag_2 = data.get('tag_2')
+
+            # 가장 최근에 생성된 해당 강의실의 Reservation 객체 가져오기
             reservation = Reservation.objects.filter(classroom__room_id=room_id).order_by('-id').first()
-
-            # 예약 정보가 없는 경우 처리
             if not reservation:
-                return JsonResponse({'message': 'No reservations found for this room.'}, status=404)
+                return JsonResponse({'error': 'No reservation found for this room.'}, status=404)
 
-            # 필요한 필드만 추출하여 JSON 생성
-            response_data = {
-                "Classroom": {
-                    "building_name": reservation.classroom.building_name,
-                    "room_id": reservation.classroom.room_id,
-                    "reservation_date": reservation.reservation_date,
-                    "start_time": reservation.start_time.strftime("%H:%M"),
-                    "end_time": reservation.end_time.strftime("%H:%M"),
-                    "custum_tag": reservation.custom_tag,
-                    "tag_1": reservation.tag_1,
-                    "tag_2": reservation.tag_2,
-                }
-            }
+            # 태그 업데이트
+            reservation.custum_tag = custum_tag
+            reservation.tag_1 = tag_1
+            reservation.tag_2 = tag_2
+            reservation.attendees_count = 1
+            reservation.save()
 
-            return JsonResponse(response_data, status=200)
+            return JsonResponse({'message': 'Reservation updated successfully.'}, status=200)
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
-    else:
-        return JsonResponse({'error': 'Invalid HTTP method.'}, status=405)
-    
+        else:
+            return JsonResponse({'error': 'Invalid HTTP method.'}, status=405)
+
 @csrf_exempt
 def start(request):
     return JsonResponse()

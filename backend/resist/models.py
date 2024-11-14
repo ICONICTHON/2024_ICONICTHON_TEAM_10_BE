@@ -53,3 +53,33 @@ class Course(models.Model):
 
     def __str__(self):
         return f"Course {self.course_id} in {self.classroom}"
+
+class timecheck(models.Model):
+    f = models.BooleanField(default = True) #8시부터 8 30까지
+    fh = models.BooleanField(default = True) #830부터 9시까지
+    s = models.BooleanField(default = True)
+    sh = models.BooleanField(default = True)
+    t = models.BooleanField(default = True)
+    th = models.BooleanField(default = True)
+    four = models.BooleanField(default = True)
+    fourh = models.BooleanField(default = True)
+    five = models.BooleanField(default = True)
+    fiveh = models.BooleanField(default = True)
+    six = models.BooleanField(default = True)
+    sixh = models.BooleanField(default = True)
+    seven = models.BooleanField(default = True)
+    sevenh = models.BooleanField(default = True)
+    e = models.BooleanField(default = True)
+    eh = models.BooleanField(default = True)
+    n = models.BooleanField(default = True)
+    nh = models.BooleanField(default = True)
+    ten = models.BooleanField(default = True)
+    tenh = models.BooleanField(default = True)
+    ele = models.BooleanField(default = True)
+    eleh = models.BooleanField(default = True)
+    twe = models.BooleanField(default = True)
+    tweh = models.BooleanField(default = True)
+    _13 = models.BooleanField(default = True)
+    _13h = models.BooleanField(default = True)
+    _14 = models.BooleanField(default = True)
+    _14h = models.BooleanField(default = True)

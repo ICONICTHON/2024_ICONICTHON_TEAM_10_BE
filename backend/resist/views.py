@@ -65,33 +65,7 @@ def select_classroom(request):
             return JsonResponse({'error': str(e)}, status=500)
     else:
         return JsonResponse({'error': 'Invalid HTTP method.'}, status=405)
-'''
-@csrf_exempt
-def select_classroom_1(request):
-    if request.method == 'POST':# JSON 데이터 파싱
-        data = json.loads(request.body)
-        custom_tag = data.get('custom_tag')
-        tag_1 = data.get('tag_1')
-        tag_2 = data.get('tag_2')
 
-
-    reservation = Reservation.objects.create(
-                classroom=classroom,
-                custom_tag=custom_tag,
-                tag_1=tag_1,
-                tag_2=tag_2,
-                # 다른 필드들도 필요에 따라 추가
-                applicant=User.objects.first(),  # 실제로는 적절한 User로 대체해야 함
-                start_time=datetime.now(),
-                end_time=datetime.now() + timedelta(hours=1)
-    )
-    return JsonResponse({'message': 'Reservation created successfully.'}, status=201)
-
-@csrf_exempt
-def select_classroom_1(request):
-    if request.method == 'GET':
-    
-        '''
 @csrf_exempt
 def select_classroom_2(request):
      if request.method == 'POST':
@@ -173,7 +147,34 @@ def select_classroom_2(request):
 
      return JsonResponse({'error': 'Invalid HTTP method.'}, status=405)
 
+@csrf_exempt
+def get_latest_reservation(request):
+    if request.method == 'GET':
+        try:
+            # 가장 최근 예약을 가져옵니다.
+            latest_reservation = Reservation.objects.order_by('-id').first()
 
+            if not latest_reservation:
+                return JsonResponse({'error': 'No reservations found.'}, status=404)
+
+            # 예약 정보를 JSON 형식으로 반환
+            response_data = {
+                "building_name": latest_reservation.classroom.building_name,
+                "room_id": latest_reservation.classroom.room_id,
+                "reservation_date": latest_reservation.reservation_date,
+                "start_time": latest_reservation.start_time.strftime('%H:%M'),
+                "end_time": latest_reservation.end_time.strftime('%H:%M'),
+                "custom_tag": latest_reservation.custum_tag,
+                "tag_1": latest_reservation.tag_1,
+                "tag_2": latest_reservation.tag_2,
+            }
+
+            return JsonResponse(response_data, status=200)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    else:
+        return JsonResponse({'error': 'Invalid HTTP method.'}, status=405)
+        
 @csrf_exempt
 def start(request):
     if request.method == 'POST':
@@ -211,50 +212,6 @@ def start(request):
             }
 
             return JsonResponse({'message': 'Reservation updated successfully.', 'reservation': response_data}, status=200)
-        except Exception as e:
-            return JsonResponse({'error': str(e)}, status=500)
-    else:
-        return JsonResponse({'error': 'Invalid HTTP method.'}, status=405)
-
-@csrf_exempt
-def get_unavailable_times(request):
-    if request.method == 'POST':
-        try:
-            data = json.loads(request.body)
-            room_id = data.get('room_id')
-            date_str = data.get('date')  # "YYYY-MM-DD" 형식
-
-            if not all([room_id, date_str]):
-                return JsonResponse({'error': 'Room ID and date are required.'}, status=400)
-
-            date = datetime.strptime(date_str, '%Y-%m-%d').date()
-
-            # 해당 날짜의 예약 및 강의 시간 조회
-            reservations = Reservation.objects.filter(
-                classroom__room_id=room_id,
-                start_time__date=date
-            )
-
-            courses = Course.objects.filter(
-                classroom__room_id=room_id,
-                start_time__date=date
-            )
-
-            # 예약 및 강의 시간을 리스트로 변환
-            unavailable_times = []
-            for res in reservations:
-                unavailable_times.append({
-                    'start_time': res.start_time.strftime('%H:%M'),
-                    'end_time': res.end_time.strftime('%H:%M'),
-                })
-
-            for course in courses:
-                unavailable_times.append({
-                    'start_time': course.start_time.strftime('%H:%M'),
-                    'end_time': course.end_time.strftime('%H:%M'),
-                })
-
-            return JsonResponse({'unavailable_times': unavailable_times}, status=200)
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
     else:
